@@ -1,0 +1,32 @@
+[project]
+name = "f407-hil-bench"
+version = "0.1.0"
+description = "Hardware-in-the-loop test bench for the STM32F407 Discovery: bench.py, test plans and test firmware"
+readme = "README.md"
+# bench.py needs 3.11 (tomllib).
+requires-python = ">=3.12"
+dependencies = [
+    "pyserial>=3.5",
+]
+
+[dependency-groups]
+# cam_blink step in bench.py
+camera = [
+    "numpy>=1.26",
+    "opencv-python-headless>=4.9",
+]
+dev = [
+    "ruff>=0.6",
+]
+
+[tool.uv]
+# Scripts run from the repo root (python bench.py); nothing to build or install.
+package = false
+# Plain `uv sync` installs every group, so it never strips the camera tools from .venv.
+default-groups = "all"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+lint.select = ["E4", "E7", "E9", "F"]
+extend-exclude = ["node_modules", "camera", "firmware/build"]
