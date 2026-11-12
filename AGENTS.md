@@ -1,13 +1,12 @@
 # Agent rules (f407-hil-bench)
 
 This repo is the STM32F407 test bench. Touch the board only through `bench.py`. The bench's eye is an
-Android phone; the camera tool lives in the sibling repo `f407-camera-blink/camera`, linked here as
-`camera/` (see README).
+Android phone; the camera tool is not part of this repo and is linked locally as `camera/` (see README).
 
 ## Folders
 - `bench.py`, `bench.toml`, `plans/`, `runs/`: the test bench tool, its config, test plans, and results
 - `firmware/`: the test firmware on the board (`stm32bench-fw`) and `build.py`
-- `camera/`: local link to `../f407-camera-blink/camera` (Bun + TypeScript, scrcpy/adb/ffmpeg). The `cam_blink` step uses it.
+- `camera/`: local link to the phone camera tool (Bun + TypeScript, scrcpy/adb/ffmpeg), gitignored. The `cam_blink` step uses it.
 - `results/`: published runs of 2026-10-28 with their negative checks
 
 ## Hardware
@@ -40,7 +39,7 @@ Every result has `ok`, `error_type`, `summary`, and `likely_causes` fields. Afte
 - Record a video: `cd camera && ~/.bun/bin/bun scripts/record-video.ts <ADB_SERIAL> back 4 30`
   The arguments are seconds and fps, and the last line is the MP4 path. To measure an LED, use the
   `cam_blink` step instead of recording by hand.
-- Camera code changes belong in the `f407-camera-blink` repo. After a change, run
+- Camera code changes belong in the camera tool's own repo, not here. After a change, run
   `cd camera && ~/.bun/bin/bun test && ~/.bun/bin/bun run typecheck` there. The tests use fake adb and scrcpy.
 
 ## Prohibited

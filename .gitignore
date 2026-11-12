@@ -5,7 +5,7 @@ firmware/build/
 bench.toml
 runs/*
 !runs/.gitkeep
-# local link to the phone camera tool in f407-camera-blink (see README)
+# local link to the phone camera tool (see README)
 /camera
 node_modules/
 docs/raporlar/
