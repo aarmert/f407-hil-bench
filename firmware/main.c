@@ -13,7 +13,7 @@
  *   VDD             -> VDD <mV>      (VDDA measured with VREFINT + VREFINT_CAL)
  *   TEMP            -> TEMP <°C>     (internal temperature sensor, TS_CAL1/TS_CAL2, VDDA-corrected, 0.1 °C)
  *   LED <G|O|R|B> <ON|OFF> -> OK LED x ON/OFF   (touching G turns off the heartbeat)
- *   BLINK <1-20>    -> OK BLINK n   (green LED blinks at n Hz; for the camera test)
+ *   BLINK <1-20>    -> OK BLINK n   (green LED blinks at n Hz)
  *   CRASH           -> OK CRASH, then a deliberate HardFault (for testing)
  *   RESET           -> OK RESET, then a software reset
  *

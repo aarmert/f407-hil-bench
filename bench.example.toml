@@ -48,12 +48,3 @@ plans_dir_only = false
 [paths]
 plans_dir = "plans"
 runs_dir = "runs"
-
-# [camera]
-# Phone camera for the cam_blink step (camera/ folder). All optional; the defaults:
-# tool_dir = "camera"        # relative to the folder of this file
-# bun = "~/.bun/bin/bun"
-# serial = ""          # if empty, the only connected adb device is used
-# camera = "back"
-# fps = 30
-# roi = [733, 778, 30, 30]   # LED region [x, y, width, height]; found automatically if not given

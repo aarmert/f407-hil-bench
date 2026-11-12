@@ -1,19 +1,16 @@
 # Agent rules (f407-hil-bench)
 
-This repo is the STM32F407 test bench. Touch the board only through `bench.py`. The bench's eye is an
-Android phone; the camera tool is not part of this repo and is linked locally as `camera/` (see README).
+This repo is the STM32F407 test bench. Touch the board only through `bench.py`.
 
 ## Folders
 - `bench.py`, `bench.toml`, `plans/`, `runs/`: the test bench tool, its config, test plans, and results
 - `firmware/`: the test firmware on the board (`stm32bench-fw`) and `build.py`
-- `camera/`: local link to the phone camera tool (Bun + TypeScript, scrcpy/adb/ffmpeg), gitignored. The `cam_blink` step uses it.
 - `results/`: published runs of 2026-10-28 with their negative checks
 
 ## Hardware
 - Board: STM32F407G-DISC1 (STM32F407VG, Cortex-M4), LEDs on PD12-PD15
 - Serial test channel: USART2, PA2=TX, PA3=RX, 115200 8N1 (through a USB-TTL adapter)
 - Clock: HSI 16 MHz
-- Camera: an Android 12+ phone with USB debugging enabled (adb serial `<ADB_SERIAL>`)
 
 ## Commands (always use --json)
 - Run Python through uv (`uv run ...`) so it uses `.venv` with the packages in `uv.lock`. If `.venv` is missing, run `uv sync`.
@@ -33,18 +30,9 @@ Android phone; the camera tool is not part of this repo and is linked locally as
 Every result has `ok`, `error_type`, `summary`, and `likely_causes` fields. After a failed
 `run`, read `serial.log` in the `report_dir`.
 
-## Camera
-- Take a photo: `cd camera && ~/.bun/bin/bun scripts/test-camera.ts <ADB_SERIAL> back`
-  The last line is the JPEG path. Open the file and look at it. If the phone is not facing the board, try `front`.
-- Record a video: `cd camera && ~/.bun/bin/bun scripts/record-video.ts <ADB_SERIAL> back 4 30`
-  The arguments are seconds and fps, and the last line is the MP4 path. To measure an LED, use the
-  `cam_blink` step instead of recording by hand.
-- Camera code changes belong in the camera tool's own repo, not here. After a change, run
-  `cd camera && ~/.bun/bin/bun test && ~/.bun/bin/bun run typecheck` there. The tests use fake adb and scrcpy.
-
 ## Prohibited
 - Do NOT CHANGE the files in `bench.py`, `bench.toml`, `plans/`, or `runs/`. If a test is wrong, tell
-  the human. Changing a test to make it pass is forbidden. The same applies to `camera/tests/`.
+  the human. Changing a test to make it pass is forbidden.
 - Do not run `STM32_Programmer_CLI` or `openocd` directly.
 - Never touch option bytes, read protection (RDP), or mass erase.
 - In the firmware, do not use the PA13/PA14 (SWD) pins for anything else.

@@ -2,7 +2,7 @@
 
 A hardware-in-the-loop test bench for the STM32F407 Discovery that a person or a coding agent can drive
 from the command line. `bench.py` flashes and resets the board, talks to it over a serial port, watches
-its LEDs through an Android phone camera, and runs test plans written in TOML. Every command takes
+measures its supply voltage, temperature and clock, and runs test plans written in TOML. Every command takes
 `--json` and returns a machine-readable verdict with the likely causes of a failure, so an agent can act
 on the result without reading a log. When a test leaves the board hung or crashed, the tool recovers it
 by itself.
@@ -15,7 +15,7 @@ This repo is part of [tezgah-lab](https://github.com/aarmert/tezgah-lab), togeth
 
 **Contents:** [Results](#results) · [Try it without hardware](#try-it-without-hardware) ·
 [Requirements](#requirements) · [Wiring](#wiring) · [Commands](#commands) ·
-[Writing a test plan](#writing-a-test-plan) · [The camera tool](#the-camera-tool) ·
+[Writing a test plan](#writing-a-test-plan) ·
 [Production station](#production-station-station) · [Using it with an agent](#using-it-with-an-agent-claude-code-opencode) ·
 [Repo layout](#repo-layout)
 
@@ -70,7 +70,6 @@ The last command fails on purpose. This is what a failed result looks like:
 | Everything | [uv](https://docs.astral.sh/uv/) (installs Python and `pyserial`) |
 | Flashing and debugging | OpenOCD, or STM32CubeProgrammer |
 | Building firmware | `arm-none-eabi-gcc` |
-| Camera steps | `adb`, scrcpy 2.5+, `ffmpeg`, [Bun](https://bun.sh), the `camera` group (opencv, numpy; `uv sync` installs it), the camera tool (see [The camera tool](#the-camera-tool)), and an Android 12+ phone with USB debugging |
 
 Config: copy `bench.example.toml` to `bench.toml` (gitignored) and set the serial port.
 
@@ -106,8 +105,7 @@ doesn't have it, and installs the packages at the versions in `uv.lock` into `.v
 
 Read `setup_ubuntu.sh` before you run it. Besides installing packages with `sudo` and adding you to the
 `dialout` and `plugdev` groups, it stops the machine from suspending (it masks the sleep targets and
-ignores the lid switch). That suits a dedicated bench computer and probably not your laptop. It does
-not install the camera tools (`adb`, scrcpy 2.5+, `ffmpeg`, Bun). Install those yourself, then set up the camera tool as described in [The camera tool](#the-camera-tool).
+ignores the lid switch). That suits a dedicated bench computer and probably not your laptop.
 
 Use the `/dev/serial/by-id/...` name from the `bench.py ports` output. After a reboot, `/dev/ttyUSB0`
 can point to a different device. The by-id name stays the same.
@@ -158,7 +156,7 @@ If the board crashes, the tool maps the address in the HARDFAULT line to a funct
 ## Writing a test plan
 
 The plans in `plans/` are working examples; [`plans/smoke.toml`](plans/smoke.toml) is the shortest.
-The steps below and `cam_blink` in the next section are all eight actions.
+The steps below are all seven actions.
 
 ```toml
 name = "example"
@@ -203,50 +201,11 @@ round trip). If the last expectation step is a `clock_check`, `--verify-can-fail
 Every new plan should pass `--verify-can-fail`. A test that does not fail when the expectation is
 deliberately broken proves nothing.
 
-## Measuring an LED with the camera (`cam_blink`)
-
-```toml
-[[step]]
-action = "cam_blink"        # record a video with the phone and measure the LED's blink frequency
-seconds = 4                 # recording length
-range = [1.8, 2.2]          # Hz
-# duty_range = [0.4, 0.6]   # optional duty cycle range
-# skip_s = 0.5              # skip the first frames (let exposure and focus settle)
-
-[[step]]
-action = "cam_blink"        # is the LED steady? The region and threshold come from the previous cam_blink step
-seconds = 3
-steady = "on"               # or "off"
-```
-
-- The `camera/` tool (`camera/scripts/record-video.ts`, scrcpy) records the video. Frame times come from
-  the video's own timestamps (ffprobe).
-- The LED region is the 30×30 pixel spot whose brightness changes most across the frames. If the LED's
-  reflection on a shiny surface changes more, the tool picks the reflection. The frequency comes out the same,
-  but check the marked frame. To fix the region, add `[camera] roi = [x, y, width, height]` to `bench.toml`.
-- The verdict is numeric. The threshold is the midpoint between the 5th and 95th brightness percentiles, transitions
-  use hysteresis, and the tool finds each transition time by linear interpolation between two frames.
-  It computes the frequency from both rising and falling edges.
-- If the measured frequency is above a quarter of the frame rate, the message starts with `WARNING:`.
-  Frequencies above half the frame rate alias, so they look lower than they are.
-- Each step writes `cam_stepNN.mp4`, `cam_stepNN_roi.jpg` (region marked, other candidates as yellow
-  circles), and `cam_stepNN.csv` (time, brightness) to the report folder.
-- With `--sim`, the tool uses a synthetic ffmpeg video, so no phone or camera tool is needed.
-- If Bun is not at `~/.bun/bin/bun`, or more than one phone is attached, set `bun` or `serial` under
-  `[camera]` in `bench.toml`. `bench.example.toml` lists the keys.
-
-## The camera tool
-
-The `cam_blink` step runs the phone tool's `scripts/record-video.ts` (Bun + TypeScript, scrcpy). The
-tool is not part of this repo and is not published. `bench.py` looks for it in `camera/` next to
-`bench.toml` by default (`camera/` is gitignored); set `tool_dir` under `[camera]` in `bench.toml` to
-use another folder (see `bench.example.toml`). With `--sim`, no tool is needed.
-
 ## Production station (`station`)
 
 ```bash
 uv run bench.py station                              # asks for the operator, waits for Enter on each board, q to quit
-uv run bench.py station --plans smoke,measure,camera_blink
+uv run bench.py station --plans smoke,measure
 uv run bench.py station --rounds 3 --no-prompt --operator Ayse   # for testing and automation
 ```
 
@@ -266,7 +225,7 @@ uv run bench.py station --rounds 3 --no-prompt --operator Ayse   # for testing a
 
 `PING`, `VER`, `TICK`, `UID`, `VDD` (supply voltage in mV), `TEMP` (chip temperature in °C, 0.1 resolution),
 `LED <G|O|R|B> <ON|OFF>`, `BLINK <1-20>`
-(the green LED's blink rate, for the camera test), `CRASH` (a deliberate HardFault),
+(the green LED's blink rate), `CRASH` (a deliberate HardFault),
 `RESET`. At boot it prints `BOOT stm32bench-fw v1.2.0 reset=<cause>`. The green LED
 blinks at 2 Hz while the main loop runs, and stops if the board hangs.
 
@@ -288,8 +247,7 @@ The clock is the internal 16 MHz HSI, with no PLL setup.
 
 Start `claude` or `opencode` in this folder. The rules are in `AGENTS.md`, and Claude reads it through
 `CLAUDE.md`. The agent touches the board only through `bench.py`, cannot change the
-test files, and does not touch option bytes. `AGENTS.md` has an `<ADB_SERIAL>` placeholder for the
-phone; replace it with your phone's serial from `adb devices`.
+test files, and does not touch option bytes.
 
 `AGENTS.md` only asks the agent to leave the tests alone. Two settings enforce part of it:
 
@@ -307,7 +265,7 @@ decides to undo them.
 |---|---|
 | `bench.py` | The bench tool: flash, reset, send and read over serial, run test plans, recover, station mode |
 | `bench.example.toml` | Config template; copy it to `bench.toml` (gitignored) |
-| `plans/` | Test plans: `smoke`, `crash_recovery`, `measure`, `camera_blink` |
+| `plans/` | Test plans: `smoke`, `crash_recovery`, `measure` |
 | `firmware/` | The F407 test firmware (`main.c`) and `build.py`. Bare metal, no HAL, no make. |
 | `results/runs/` | Published runs of 2026-10-28 with their negative checks |
 | `runs/` | Where `bench.py run` writes its reports (gitignored) |

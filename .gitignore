@@ -5,7 +5,4 @@ firmware/build/
 bench.toml
 runs/*
 !runs/.gitkeep
-# local link to the phone camera tool (see README)
-/camera
-node_modules/
 docs/raporlar/
