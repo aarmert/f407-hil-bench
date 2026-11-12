@@ -11,8 +11,7 @@ Every test also has to show that it can fail: `--verify-can-fail` runs a deliber
 each plan, and that copy must FAIL.
 
 This repo is part of [tezgah-lab](https://github.com/aarmert/tezgah-lab), together with
-[c031-ab-bootloader-stress](https://github.com/aarmert/c031-ab-bootloader-stress) (which uses a copy of this `bench.py`) and
-[f407-camera-blink](https://github.com/aarmert/f407-camera-blink) (the camera measurement and the phone tool).
+[c031-ab-bootloader-stress](https://github.com/aarmert/c031-ab-bootloader-stress), which uses a copy of this `bench.py`.
 
 **Contents:** [Results](#results) · [Try it without hardware](#try-it-without-hardware) ·
 [Requirements](#requirements) · [Wiring](#wiring) · [Commands](#commands) ·
@@ -22,7 +21,7 @@ This repo is part of [tezgah-lab](https://github.com/aarmert/tezgah-lab), togeth
 
 ## Results
 
-All four plans pass on the real board (2026-10-28), and each one FAILS when its expectation is broken on
+The `smoke`, `crash_recovery` and `measure` plans pass on the real board (2026-10-28), and each one FAILS when its expectation is broken on
 purpose. The reports are in [`results/runs/`](results/runs/); each folder has `report.md`,
 `result.json` and `serial.log`.
 
@@ -31,7 +30,6 @@ purpose. The reports are in [`results/runs/`](results/runs/); each folder has `r
 | `smoke` | boot banner, `PING`, `VER`, `TICK` range, `UID`, an LED, an unknown command | `20261028-184415_smoke`, `20261028-184434_smoke` | `20261028-184417_smoke_negatif` |
 | `crash_recovery` | a deliberate HardFault is reported, the board then stays silent, and it answers again after a reset | `20261028-184419_crash_recovery`, `20261028-184434_crash_recovery` | `20261028-184422_crash_recovery_negatif` |
 | `measure` | supply voltage, chip temperature, board clock against the PC clock | `20261028-184425_measure`, `20261028-184436_measure` | `20261028-184431_measure_negatif` |
-| `camera_blink` | LED blink frequency at 1/2/4 Hz and steady-on, measured with the phone camera | see [f407-camera-blink](https://github.com/aarmert/f407-camera-blink) | see [f407-camera-blink](https://github.com/aarmert/f407-camera-blink) |
 
 Redactions: the host name, home directory, ST-Link serial number and board UID in these reports were
 replaced with placeholders, so the `audit_hash` values no longer match the files byte for byte.
@@ -72,7 +70,7 @@ The last command fails on purpose. This is what a failed result looks like:
 | Everything | [uv](https://docs.astral.sh/uv/) (installs Python and `pyserial`) |
 | Flashing and debugging | OpenOCD, or STM32CubeProgrammer |
 | Building firmware | `arm-none-eabi-gcc` |
-| Camera steps | `adb`, scrcpy 2.5+, `ffmpeg`, [Bun](https://bun.sh), the `camera` group (opencv, numpy; `uv sync` installs it), the camera tool from f407-camera-blink, and an Android 12+ phone with USB debugging |
+| Camera steps | `adb`, scrcpy 2.5+, `ffmpeg`, [Bun](https://bun.sh), the `camera` group (opencv, numpy; `uv sync` installs it), the camera tool (see [The camera tool](#the-camera-tool)), and an Android 12+ phone with USB debugging |
 
 Config: copy `bench.example.toml` to `bench.toml` (gitignored) and set the serial port.
 
@@ -207,10 +205,6 @@ deliberately broken proves nothing.
 
 ## Measuring an LED with the camera (`cam_blink`)
 
-> The camera measurement is written up in [f407-camera-blink](https://github.com/aarmert/f407-camera-blink),
-> with the recorded videos, figures and the comparison against the board clock. The phone tool itself
-> lives there too; see [The camera tool](#the-camera-tool).
-
 ```toml
 [[step]]
 action = "cam_blink"        # record a video with the phone and measure the LED's blink frequency
@@ -243,18 +237,10 @@ steady = "on"               # or "off"
 
 ## The camera tool
 
-The `cam_blink` step runs the phone tool's `scripts/record-video.ts`. The tool is maintained in
-[f407-camera-blink](https://github.com/aarmert/f407-camera-blink) (`camera/`), so it is not copied here. `bench.py` looks for it
-in `camera/` next to `bench.toml` by default. Either link it there:
-
-```bash
-git clone https://github.com/aarmert/f407-camera-blink.git ../f407-camera-blink
-(cd ../f407-camera-blink && bun install)
-ln -s ../f407-camera-blink/camera camera        # gitignored
-```
-
-or set `tool_dir` under `[camera]` in `bench.toml` (see `bench.example.toml`). If you cloned
-[tezgah-lab](https://github.com/aarmert/tezgah-lab) with `--recurse-submodules`, the sibling folder is already there.
+The `cam_blink` step runs the phone tool's `scripts/record-video.ts` (Bun + TypeScript, scrcpy). The
+tool is not part of this repo and is not published. `bench.py` looks for it in `camera/` next to
+`bench.toml` by default (`camera/` is gitignored); set `tool_dir` under `[camera]` in `bench.toml` to
+use another folder (see `bench.example.toml`). With `--sim`, no tool is needed.
 
 ## Production station (`station`)
 
